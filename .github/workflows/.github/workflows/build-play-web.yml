@@ -1,0 +1,43 @@
+name: Build Orion PS2 WebAssembly
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-play-web:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Orion
+        uses: actions/checkout@v4
+      - name: Checkout Play source
+        uses: actions/checkout@v4
+        with:
+          repository: jpd002/Play-
+          path: emulator/Play
+          fetch-depth: 1
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build python3 git
+      - name: Install Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.74
+          actions-cache-folder: emsdk-cache
+      - name: Configure
+        working-directory: emulator/Play
+        run: mkdir build && cd build && emcmake cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        working-directory: emulator/Play
+        run: cmake --build build --config Release
+      - name: Collect artifacts
+        run: |
+          mkdir -p emulator-artifacts
+          find emulator/Play -type f \( -name '*.js' -o -name '*.wasm' \) -exec cp {} emulator-artifacts/ \;
+          find emulator-artifacts -maxdepth 1 -type f -print
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: orion-play-webassembly
+          path: emulator-artifacts/
