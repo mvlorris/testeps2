@@ -39,6 +39,9 @@ jobs:
           cp emulator/patches/Js_DiscImageDeviceStream.h .work/Play-build/Source/
           cp emulator/patches/Js_DiscImageDeviceStream.cpp .work/Play-build/Source/
 
+      - name: Apply optional WebGL dual-source alpha and high precision shaders
+        run: python3 emulator/patches/apply-graphics-patches.py .work/Play-build
+
       - name: Install build dependencies
         run: |
           sudo apt-get update
