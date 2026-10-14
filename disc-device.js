@@ -73,6 +73,9 @@ export class DiscImageDevice {
         done += chunkSize;
       }
       this.readCount += 1;
+      // A ponte usa RPC síncrono entre pthread e UI. Liberar um turno de eventos
+      // periodicamente evita monopolizar a UI com centenas de milhares de cache hits.
+      if ((this.readCount & 255) === 0) await new Promise(resolve => setTimeout(resolve, 0));
       this.onProgress({ bytesRead: this.bytesRead, readCount: this.readCount });
     } catch (error) {
       const firstFailure = !this.error;

@@ -1,4 +1,4 @@
-import { DiscImageDevice, checkDiscAccess } from './disc-device.js?v=0.4.0';
+import { DiscImageDevice, checkDiscAccess } from './disc-device.js?v=0.4.1';
 
 const canvas = document.querySelector('#outputCanvas');
 const status = document.querySelector('#status');

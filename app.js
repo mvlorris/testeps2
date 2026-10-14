@@ -106,7 +106,7 @@ function openEmulator(game) {
   }
   player = document.createElement('iframe');
   player.title = 'Player PS2 local';
-  player.src = './player.html?v=0.4.0';
+  player.src = './player.html?v=0.4.1';
   player.allow = 'autoplay; fullscreen; gamepad';
   $('#playerHost').append(player);
 }
