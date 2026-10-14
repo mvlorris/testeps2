@@ -1,7 +1,9 @@
 // Adaptado do DiscImageDevice.ts do Play! (licença BSD de 2 cláusulas; ver LICENSE-Play.txt).
 // A ponte C++ consulta read(), isDone() e getFileSize() na thread principal.
+import { createTaskYielder } from './performance-utils.js?v=0.5.0';
+
 export class DiscImageDevice {
-  constructor(module, { onReadError = () => {}, onProgress = () => {} } = {}) {
+  constructor(module, { onReadError = () => {}, onProgress = () => {}, cacheBlocks = 4 } = {}) {
     this.module = module;
     this.file = null;
     this.doneFlag = true;
@@ -11,7 +13,10 @@ export class DiscImageDevice {
     this.maxBlockBytes = 1024 * 1024;
     this.diskBytesRead = 0;
     this.cache = new Map();
-    this.maxCachedBlocks = 4;
+    this.maxCachedBlocks = Math.max(1, Math.min(32, Math.trunc(cacheBlocks) || 4));
+    this.cacheHits = 0;
+    this.cacheMisses = 0;
+    this.yieldTask = createTaskYielder();
     this.onReadError = onReadError;
     this.onProgress = onProgress;
   }
@@ -22,6 +27,8 @@ export class DiscImageDevice {
     this.bytesRead = 0;
     this.readCount = 0;
     this.diskBytesRead = 0;
+    this.cacheHits = 0;
+    this.cacheMisses = 0;
     this.cache.clear();
     this.doneFlag = true;
   }
@@ -32,6 +39,14 @@ export class DiscImageDevice {
   }
 
   isDone() { return this.doneFlag; }
+
+  dispose() { this.yieldTask.dispose(); this.cache.clear(); }
+
+  get cacheBytes() {
+    let bytes = 0;
+    for (const block of this.cache.values()) bytes += block.length;
+    return bytes;
+  }
 
   read(dstPtr, offset, size) {
     // Emscripten pode entregar os inteiros i32 como números negativos.
@@ -47,19 +62,22 @@ export class DiscImageDevice {
       if (!this.file) throw new Error('Arquivo do disco não selecionado.');
       if (!Number.isSafeInteger(offset) || offset < 0) throw new Error('Posição do disco inválida.');
       if (ptr + length > this.module.HEAPU8.length) throw new Error('Buffer do emulador fora dos limites.');
-      // Preenche a parte além do EOF com zeros, como o dispositivo oficial.
-      this.module.HEAPU8.fill(0, ptr, ptr + length);
       const available = Math.max(0, Math.min(length, this.file.size - offset));
+      // Não zerar bytes que serão imediatamente sobrescritos por dados válidos.
+      if (available < length) this.module.HEAPU8.fill(0, ptr + available, ptr + length);
       for (let done = 0; done < available;) {
         const position = offset + done;
         const blockStart = Math.floor(position / this.maxBlockBytes) * this.maxBlockBytes;
         let data = this.cache.get(blockStart);
         if (!data) {
+          this.cacheMisses += 1;
           const blockEnd = Math.min(blockStart + this.maxBlockBytes, this.file.size);
           const buffer = await this.file.slice(blockStart, blockEnd).arrayBuffer();
           if (buffer.byteLength !== blockEnd - blockStart) throw new Error('A leitura do disco foi interrompida.');
           data = new Uint8Array(buffer);
           this.diskBytesRead += data.byteLength;
+        } else {
+          this.cacheHits += 1;
         }
         // Promover o bloco para o fim da LRU. Limitar o cache a 4 MiB.
         this.cache.delete(blockStart);
@@ -75,7 +93,7 @@ export class DiscImageDevice {
       this.readCount += 1;
       // A ponte usa RPC síncrono entre pthread e UI. Liberar um turno de eventos
       // periodicamente evita monopolizar a UI com centenas de milhares de cache hits.
-      if ((this.readCount & 255) === 0) await new Promise(resolve => setTimeout(resolve, 0));
+      if ((this.readCount & 255) === 0) await this.yieldTask();
       this.onProgress({ bytesRead: this.bytesRead, readCount: this.readCount });
     } catch (error) {
       const firstFailure = !this.error;

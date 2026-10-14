@@ -7,6 +7,10 @@ let currentFilter = 'all';
 let player = null;
 let activeGame = null;
 let toastTimer;
+let coreMode = 'optimized';
+try { if (localStorage.getItem('orion-core-mode') === 'compatibility') coreMode = 'compatibility'; } catch {}
+
+function selectedCoreOptions() { return { mode: coreMode }; }
 
 function toast(message) {
   $('#toast').textContent = message;
@@ -106,7 +110,7 @@ function openEmulator(game) {
   }
   player = document.createElement('iframe');
   player.title = 'Player PS2 local';
-  player.src = './player.html?v=0.4.1';
+  player.src = './player.html?v=0.5.0';
   player.allow = 'autoplay; fullscreen; gamepad';
   $('#playerHost').append(player);
 }
@@ -116,11 +120,13 @@ window.addEventListener('message', event => {
   if (data?.source !== 'orion-player') return;
   if (data.type === 'ready') {
     const file = files.get(activeGame.id);
-    player.contentWindow.postMessage({ source: 'orion-library', type: 'boot', file }, location.origin);
+    player.contentWindow.postMessage({ source: 'orion-library', type: 'boot', file, options: selectedCoreOptions() }, location.origin);
   } else if (data.type === 'status' || data.type === 'error') {
     $('#emulatorMessage').textContent = data.message;
   } else if (data.type === 'stats') {
-    $('#playerStats').textContent = `${data.frames} quadros/s · ${formatSize(data.bytesRead)} lidos em blocos · ${formatSize(data.wasmMemoryBytes)} de memória WASM`;
+    const fps = Number.isFinite(data.averageFps) ? data.averageFps.toFixed(1) : String(data.frames);
+    const text = `${fps} FPS · ${data.optimized ? 'núcleo otimizado' : 'núcleo anterior'} · ${data.readCount.toLocaleString('pt-BR')} leituras pela ponte · cache ${formatSize(data.cacheBytes || 0)} · WASM ${formatSize(data.wasmMemoryBytes)}`;
+    if ($('#playerStats').textContent !== text) $('#playerStats').textContent = text;
   }
 });
 $('#importGameBtn').onclick = chooseFile;
@@ -179,6 +185,12 @@ async function setupIsolation() {
 }
 $('#howBtn').onclick = () => $('#howDialog').showModal();
 $('#settingsBtn').onclick = () => $('#settingsDialog').showModal();
+$('#coreModeSelect').value = coreMode;
+$('#coreModeSelect').onchange = event => {
+  coreMode = event.target.value === 'compatibility' ? 'compatibility' : 'optimized';
+  try { localStorage.setItem('orion-core-mode', coreMode); } catch {}
+  toast('Modo salvo. Feche e inicie o jogo novamente para aplicar.');
+};
 document.querySelectorAll('[data-close]').forEach(button => { button.onclick = () => button.closest('dialog').close(); });
 $('#emulatorDialog').addEventListener('close', stopPlayer);
 $('#clearLibraryBtn').onclick = async () => {
