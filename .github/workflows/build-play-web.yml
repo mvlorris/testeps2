@@ -13,17 +13,31 @@ permissions:
 jobs:
   build-play-web:
     runs-on: ubuntu-22.04
+    timeout-minutes: 25
     steps:
       - name: Checkout Orion
         uses: actions/checkout@v4
 
-      - name: Checkout Play! source
+      - name: Test bounded native disk cache
+        run: |
+          mkdir -p emulator-artifacts
+          g++ -std=c++20 -O2 -Wall -Wextra -I emulator/patches emulator/tests/disc-cache-test.cpp -o /tmp/orion-disc-cache-test
+          /tmp/orion-disc-cache-test | tee emulator-artifacts/disc-cache-test.json
+
+      - name: Checkout known working Play! source
         uses: actions/checkout@v4
         with:
           repository: jpd002/Play-
-          path: emulator/Play
-          fetch-depth: 0
+          ref: d44bfa1814b729d4a3ed3c6c3a945432d5ee5bbe
+          path: .work/Play-build
+          fetch-depth: 1
           submodules: recursive
+
+      - name: Apply bounded native disk cache
+        run: |
+          cp emulator/patches/OrionDiscReadCache.h .work/Play-build/Source/
+          cp emulator/patches/Js_DiscImageDeviceStream.h .work/Play-build/Source/
+          cp emulator/patches/Js_DiscImageDeviceStream.cpp .work/Play-build/Source/
 
       - name: Install build dependencies
         run: |
@@ -35,23 +49,22 @@ jobs:
         with:
           version: 3.1.74
           actions-cache-folder: emsdk-cache
+
       - name: Configure Play! web build
-        working-directory: emulator/Play
+        working-directory: .work/Play-build
         run: |
-          mkdir -p build
-          cd build
-          emcmake cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -DBUILD_PLAY=ON -DBUILD_PSFPLAYER=ON -DUSE_QT=OFF
+          emcmake cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -DBUILD_PLAY=ON -DBUILD_PSFPLAYER=OFF -DUSE_QT=OFF
 
       - name: Compile Play! WebAssembly
-        working-directory: emulator/Play
-        run: cmake --build build --config Release
+        working-directory: .work/Play-build
+        run: cmake --build build --target Play --parallel 2
 
       - name: Collect emulator artifacts
         run: |
-          mkdir -p emulator-artifacts
-          find emulator/Play -type f \( -name 'Play.js' -o -name 'Play.wasm' \) -print -exec cp {} emulator-artifacts/ \;
+          find .work/Play-build/build -type f \( -name 'Play.js' -o -name 'Play.wasm' \) -print -exec cp {} emulator-artifacts/ \;
           test -s emulator-artifacts/Play.js
           test -s emulator-artifacts/Play.wasm
+          sha256sum emulator-artifacts/Play.js emulator-artifacts/Play.wasm | tee emulator-artifacts/SHA256SUMS
 
       - name: Upload emulator artifacts
         uses: actions/upload-artifact@v4
