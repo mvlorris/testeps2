@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Orion — Player PS2</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; background: #080b12; color: #eaf0ea; font: 12px/1.6 monospace; }
+    #outputCanvas { display: block; width: 100%; max-height: 65vh; aspect-ratio: 4/3; object-fit: contain; background: #000; outline: none; }
+    #outputCanvas:focus { outline: 1px solid #a7ff4f; outline-offset: -1px; }
+    .toolbar { display: flex; gap: 16px; align-items: center; padding: 9px 12px; border-bottom: 1px solid #263241; }
+    #status { flex: 1; color: #a7ff4f; }
+    button { background: #a7ff4f; color: #080b12; border: 0; padding: 7px 12px; cursor: pointer; }
+    .help { padding: 8px 12px; color: #91a0a8; }
+    details { padding: 8px 12px; }
+    pre { white-space: pre-wrap; max-height: 130px; overflow: auto; color: #91a0a8; }
+  </style>
+</head>
+<body>
+  <canvas id="outputCanvas" width="640" height="480" tabindex="0" aria-label="Tela do emulador PS2 — clique para usar o teclado"></canvas>
+  <div class="toolbar"><span id="status" role="status">Aguardando arquivo local…</span><span id="fps">0 quadros</span><button id="fullscreenBtn">Tela cheia</button></div>
+  <div class="help">Clique na tela para controlar. Start: Enter · Select: Backspace · Direcional: setas · □: A · ×: Z · △: S · ○: X<br>Analógico esquerdo: F/H/T/G · direito: J/L/I/K · L1/L2/L3: 1/2/3 · R1/R2/R3: 8/9/0</div>
+  <details><summary>Log técnico</summary><pre id="logs"></pre></details>
+  <script type="module" src="player.js?v=0.4.0"></script>
+</body>
+</html>
