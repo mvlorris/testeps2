@@ -2,42 +2,24 @@
 
 Launcher local, estático e compatível com GitHub Pages para organizar arquivos de jogos de PS2 no navegador.
 
-## O que já funciona
+## O que funciona
 
-- Importação local de ISO, BIN, CHD, CSO e GZ.
-- Biblioteca persistida em IndexedDB no navegador.
-- Filtros de biblioteca e remoção de jogos.
-- Importação de BIOS para a sessão (sem upload).
-- Diagnóstico de WebGPU, Gamepad API e armazenamento local.
-- Interface responsiva e sem backend.
+O Orion importa ISO, BIN, CHD, CSO e GZ, persiste a biblioteca no IndexedDB do navegador, oferece filtros e remoção, verifica WebGPU/Gamepad API e abre o emulador Play! para navegador. A seleção da ISO ocorre localmente e nenhum jogo ou BIOS é enviado ao Orion.
 
-## Limitação importante
-
-Esta versão é o **launcher/base de integração**. O núcleo de emulação PS2 ainda não está incluído. A execução real exige integrar um emulador PS2 compatível com WebAssembly/WebGPU e respeitar suas licenças. O navegador não executa uma ISO sozinho apenas por ter WebGPU.
-
-Use somente ISOs, BIOS e jogos que você tenha direito de utilizar. Nenhum arquivo selecionado é enviado para a internet.
+O [Play! Web](https://playjs.purei.org/) é uma versão experimental do emulador PlayStation 2 para navegador. Ele aceita ISO, CSO, CHD, ISZ, BIN e ELF e não exige uma BIOS externa. Ao clicar em **Abrir Play!**, o navegador abre o emulador em outra aba; por segurança, a mesma ISO precisa ser escolhida novamente dentro do Play!.
 
 ## Publicar no GitHub Pages
 
-1. Crie um repositório no GitHub.
-2. Envie `index.html`, `styles.css`, `app.js` e este README.
-3. No repositório, abra **Settings → Pages**.
-4. Em **Build and deployment**, selecione **Deploy from a branch**.
-5. Escolha `main` e a pasta `/root`.
-6. Salve e aguarde a URL do Pages.
+O site já está configurado para funcionar como um site estático. Para publicar uma cópia, envie `index.html`, `styles.css`, `app.js`, `README.md` e `TODO.md` para um repositório e, em **Settings → Pages**, selecione **Deploy from a branch**, branch `main` e pasta `/ (root)`.
 
-Como o projeto usa apenas caminhos relativos, ele funciona em subpastas do GitHub Pages.
+## Limitações
+
+O Play! Web é experimental e não executa todos os jogos que funcionam na versão desktop. O desempenho depende do navegador, da GPU e do jogo. Use somente ISOs e jogos que você tenha direito de utilizar.
 
 ## Desenvolvimento local
 
-Abra `index.html` em um navegador moderno. Para alguns recursos avançados, é melhor usar um servidor estático local, por exemplo:
+Abra `index.html` em um navegador moderno ou use um servidor estático local, por exemplo `python -m http.server 8080`, e acesse `http://localhost:8080`.
 
-```bash
-python -m http.server 8080
-```
+## Próximas melhorias
 
-Depois acesse `http://localhost:8080`.
-
-## Próxima integração técnica
-
-O ponto de entrada visual de execução está no handler `[data-play]` em `app.js`. O próximo passo é substituir o aviso por um módulo WASM de emulação, carregar a ISO em chunks e conectar o framebuffer ao canvas WebGPU.
+A integração futura pode substituir a abertura externa por uma compilação própria do Play! Web, mas isso exige manter os artefatos WebAssembly, verificar licenças e configurar os cabeçalhos de isolamento cross-origin necessários para threads e streaming.
