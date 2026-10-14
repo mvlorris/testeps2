@@ -17,7 +17,7 @@
 
 ## Validação final
 
-- [ ] Confirmar a implantação 0.5.0 e a acessibilidade dos dois núcleos no GitHub Pages.
+- [x] Implantação 0.5.0 confirmada: nove recursos com SHA256 idêntico ao teste local, dois núcleos acessíveis; boot público com menu New Game, 506 quadros e nenhum erro JavaScript/rede.
 - [ ] Comprovar ganho de FPS sustentado durante gameplay no hardware real do usuário; não prometer 60 FPS a partir do boot.
 
 ## Port recompilado para PC — investigação separada, não entregue
