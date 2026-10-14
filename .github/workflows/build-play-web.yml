@@ -39,6 +39,7 @@ jobs:
         run: |
           sed -i '/CMAKE_CXX_FLAGS.*-pthread/d' emulator/Play/deps/Dependencies/cmake-modules/Header.cmake
           sed -i '/CMAKE_CXX_FLAGS.*-pthread/d' emulator/Play/deps/CodeGen/CMakeLists.txt
+          sed -i 's/if(NOT (TARGET_PLATFORM_ANDROID OR TARGET_PLATFORM_IOS))/if(NOT EMSCRIPTEN AND NOT (TARGET_PLATFORM_ANDROID OR TARGET_PLATFORM_IOS))/' emulator/Play/Source/CMakeLists.txt
 
       - name: Configure Play! web build
         working-directory: emulator/Play
