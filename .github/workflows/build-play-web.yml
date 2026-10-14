@@ -16,6 +16,7 @@ jobs:
     steps:
       - name: Checkout Orion
         uses: actions/checkout@v4
+
       - name: Checkout Play! source
         uses: actions/checkout@v4
         with:
@@ -23,30 +24,40 @@ jobs:
           path: emulator/Play
           fetch-depth: 0
           submodules: recursive
+
       - name: Install build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake ninja-build python3 git
+
       - name: Install Emscripten
         uses: mymindstorm/setup-emsdk@v14
         with:
           version: 3.1.74
           actions-cache-folder: emsdk-cache
+      - name: Disable pthread flags for static GitHub Pages
+        run: |
+          sed -i '/CMAKE_CXX_FLAGS.*-pthread/d' emulator/Play/deps/Dependencies/cmake-modules/Header.cmake
+          sed -i '/CMAKE_CXX_FLAGS.*-pthread/d' emulator/Play/deps/CodeGen/CMakeLists.txt
+
       - name: Configure Play! web build
         working-directory: emulator/Play
         run: |
           mkdir -p build
           cd build
-          emcmake cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -DBUILD_PLAY=ON -DBUILD_PSFPLAYER=ON -DUSE_QT=OFF
+          emcmake cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -DBUILD_PLAY=ON -DBUILD_PSFPLAYER=ON -DUSE_QT=OFF -DCMAKE_C_FLAGS=-sPTHREADS=0 -DCMAKE_CXX_FLAGS=-sPTHREADS=0
+
       - name: Compile Play! WebAssembly
         working-directory: emulator/Play
         run: cmake --build build --config Release
+
       - name: Collect emulator artifacts
         run: |
           mkdir -p emulator-artifacts
           find emulator/Play -type f \( -name 'Play.js' -o -name 'Play.wasm' \) -print -exec cp {} emulator-artifacts/ \;
           test -s emulator-artifacts/Play.js
           test -s emulator-artifacts/Play.wasm
+
       - name: Upload emulator artifacts
         uses: actions/upload-artifact@v4
         with:
