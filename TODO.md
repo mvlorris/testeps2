@@ -1,20 +1,20 @@
 # Orion PS2 — TODO
 
-## Entregue nesta versão
+## Concluído
 
-- [x] Criar launcher estático compatível com GitHub Pages.
-- [x] Permitir importar ISO, BIN, CHD, CSO e GZ do computador.
-- [x] Persistir nomes e metadados localmente com IndexedDB.
-- [x] Adicionar seleção de BIOS local, embora o Play! Web não exija BIOS externa.
-- [x] Diagnosticar WebGPU, Gamepad API e armazenamento.
-- [x] Integrar o botão de execução ao Play! Web oficial.
-- [x] Orientar a seleção da ISO novamente na aba do emulador por isolamento de segurança do navegador.
-- [x] Documentar publicação e limitações legais/técnicas.
+- [x] Biblioteca local e importação de ISO.
+- [x] Diagnóstico de WebGPU, Gamepad API e armazenamento.
+- [x] Remoção do redirecionamento para emulador de terceiros.
+- [x] Mensagem honesta quando o núcleo próprio ainda não está disponível.
+- [x] Workflow do GitHub Actions para compilar Play! com Emscripten.
+- [x] Identificação da ISO God of War USA como `SCUS-973.99`.
 
-## Próximo marco: integração embutida
+## Núcleo próprio
 
-- [ ] Avaliar compilar o Play! Web dentro do próprio projeto.
-- [ ] Hospedar os artefatos WebAssembly apenas se a licença e o tamanho forem adequados.
-- [ ] Configurar cross-origin isolation para SharedArrayBuffer e threads.
-- [ ] Investigar comunicação segura entre biblioteca e núcleo embutido.
-- [ ] Testar compatibilidade de jogos e desempenho em Chrome/Edge.
+- [ ] Executar o workflow e obter `Play.js` e `Play.wasm`.
+- [ ] Integrar `js/play_browser` ao layout do Orion.
+- [ ] Adaptar a API de seleção de disco para receber `File`/`FileSystemFileHandle` local.
+- [ ] Ligar framebuffer, áudio e controles ao Orion.
+- [ ] Configurar cross-origin isolation em hospedagem compatível.
+- [ ] Validar God of War `SCUS-973.99` com logs, não apenas tela preta.
+- [ ] Publicar somente após um teste real de boot e renderização.
