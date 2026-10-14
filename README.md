@@ -1,21 +1,26 @@
 # Orion PS2
 
-Launcher local para uma futura execução de jogos de PS2 dentro do próprio site. A biblioteca importa ISOs e mantém apenas metadados no navegador; o arquivo do jogo não é enviado.
+Launcher local para importar imagens de jogos de PlayStation 2 e iniciar o runtime Play! WebAssembly hospedado no próprio GitHub Pages. A ISO permanece no computador do usuário e não é enviada ao servidor.
 
-## Estado atual
+## O que está publicado
 
-A interface está pronta, mas este repositório ainda não contém `Play.js` nem `Play.wasm`. Portanto, o Orion **não tenta abrir emuladores de terceiros e não promete executar a ISO**. Ao importar um jogo, ele mostra o estado do núcleo e mantém a ISO local.
+- `Play.js` e `Play.wasm`: artefatos compilados no GitHub Actions a partir do Play!.
+- `app.js`: importa a ISO, monta o arquivo no filesystem virtual do WebAssembly e inicia o módulo.
+- `coi-serviceworker.js`: habilita COOP/COEP no GitHub Pages para permitir `SharedArrayBuffer`/pthreads.
+- `build-play-web.yml`: recompila o núcleo automaticamente no GitHub Actions.
 
-O workflow `.github/workflows/build-play-web.yml` prepara uma compilação do Play! WebAssembly no GitHub Actions. Ele é a primeira etapa para gerar o núcleo dentro do projeto. Depois da compilação, ainda será necessário integrar a API do canvas e o carregamento de disco do `js/play_browser`; somente copiar o `.wasm` não é suficiente.
+## Como usar
 
-A ISO analisada `God of War (USA)` é uma imagem válida NTSC-U com serial `SCUS-973.99`. Isso confirma o arquivo, mas não garante compatibilidade do jogo com o núcleo web experimental.
+1. Abra https://mvlorris.github.io/testeps2/ em um navegador Chromium atualizado.
+2. Na primeira visita, aguarde o recarregamento automático do service worker de isolamento.
+3. Confirme no diagnóstico que **Isolamento cross-origin** aparece como `ativo`.
+4. Importe sua ISO pelo botão **Importar ISO** e aguarde o núcleo iniciar.
+5. Se a biblioteca mostrar somente metadados após recarregar, reimporte a ISO: navegadores não permitem persistir o objeto `File` original em IndexedDB.
 
-## Por que o GitHub Pages não executa o núcleo ainda
+## Limitações atuais
 
-Um emulador PS2 web normalmente precisa de artefatos WebAssembly, WebGPU e isolamento cross-origin para threads. O GitHub Pages não oferece controle direto sobre os cabeçalhos HTTP necessários para esse isolamento. A hospedagem final pode precisar usar Cloudflare Pages, Netlify ou um servidor próprio com `Cross-Origin-Opener-Policy: same-origin` e `Cross-Origin-Embedder-Policy: require-corp`.
+O runtime Play! WebAssembly compilado já é carregado do próprio site e não usa um emulador externo. A camada de integração com o canvas/WebGL2/WebGPU depende do frontend do build do Play! e pode variar conforme navegador e jogo; a ISO `God of War (USA)` foi identificada como NTSC-U, serial `SCUS-973.99`, mas isso não garante compatibilidade perfeita.
 
-## Publicação
-
-O launcher estático continua compatível com GitHub Pages. Para executar o workflow, abra a aba **Actions** do repositório e execute **Build Orion PS2 WebAssembly** manualmente. O resultado aparece como artefato do workflow; ele ainda não deve ser publicado como se fosse uma integração concluída.
+O GitHub Pages é uma hospedagem estática. O service worker local fornece o isolamento necessário para o build com pthreads; se o navegador bloquear workers, use Chrome/Edge atualizado, recarregue a página e confirme o diagnóstico.
 
 Use apenas jogos e arquivos de sistema que você tenha direito de utilizar.
