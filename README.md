@@ -2,6 +2,20 @@
 
 Site estático compatível com GitHub Pages. Usa o núcleo open-source **Play!** hospedado no próprio repositório. Não abre playjs.purei.org, não envia a ISO e não exige uma BIOS externa.
 
+## Gráficos — revisão 0.6.0
+
+O perfil **Automático** aplica o núcleo `Play-graphics.js`/`Play-graphics.wasm` a todos os jogos da biblioteca e aos próximos arquivos selecionados, sem heurísticas por nome ou patches de ISO. Ele mantém o cache nativo e adiciona shaders de alta precisão (`highp`) e blending de dupla fonte quando `WEBGL_blend_func_extended` está disponível. O helper `graphics-config.js` faz a seleção; `emulator/patches/apply-graphics-patches.py` reproduz a mudança no código-fonte conhecido do Play!.
+
+A dupla fonte separa o alpha gravado no framebuffer do alpha usado como fator de mistura. O caminho antigo GLES dobra alpha antes de armazená-lo; o próprio fonte do Play! reconhece que isso grava um valor incorreto. A adaptação web mantém o alpha original e usa uma saída secundária do shader para o fator, com layouts ESSL3 exigidos pela especificação Khronos. Não é um filtro de cor nem alteração de texturas do jogo.
+
+O suporte é detectado e ativado no canvas real antes de `initVm`. Se a extensão não existir, o núcleo usa shaders highp sem dupla fonte; a interface informa o fallback. Não usar fatores SRC1 sem suporte. Um teste real de framebuffer RGBA8 na Radeon 860M confirmou alpha 128 no caminho novo, contra 255 no fallback antigo, com as mesmas cores RGB e nenhum erro WebGL.
+
+Em **Configurações → Gráficos · todos os jogos**, selecione **Automático** (padrão) ou **Anteriores · perfil 0.5** para regressões. Feche e reinicie o player. O perfil anterior carrega `Play-perf.js`; o Núcleo PS2 **Anterior** continua usando os binários originais e os gráficos antigos. Ambos permanecem disponíveis.
+
+God of War tem relatos oficiais de neblina/silhuetas/camadas de cor incorretas no Play!: https://github.com/jpd002/Play-Compatibility/issues/199. A dupla fonte corrige um mecanismo real de alpha, mas não implementa todos os efeitos do GS, testes de alpha/depth ou leitura do framebuffer. Não afirmar que todos os defeitos do jogo ou de todos os outros títulos foram eliminados. Especificação da extensão: https://registry.khronos.org/webgl/extensions/WEBGL_blend_func_extended/.
+
+**Defeito residual confirmado:** na primeira fase de God of War, a camada verde ainda aparece com esta revisão. O novo núcleo executou 35 variantes e 53.147 chamadas de dupla fonte na Radeon sem erros JavaScript/WebGL reportados, mas isso não corrigiu completamente a emulação visual do jogo. A revisão é uma melhoria geral de alpha/precisão, não uma solução comprovada para a camada verde. Novos testes extensivos foram interrompidos conforme solicitação do usuário.
+
 ## Desempenho — revisão 0.5.0
 
 O núcleo otimizado adiciona um cache de 64 KiB por stream dentro do worker C++. Leituras pequenas são atendidas nesse cache; a ponte síncrona com a interface só é acionada para buscar dados ausentes. O teste sintético usa 625 mil leituras sequenciais de quatro bytes e verifica os mesmos bytes, fronteiras de blocos, EOF e offsets acima de 4 GiB. Redução de chamadas não é uma medição de ganho de FPS em gameplay.
@@ -10,7 +24,7 @@ No JavaScript, o modo otimizado mantém até 16 MiB de blocos recentes, usa Mess
 
 O contador agora divide os quadros pelo tempo efetivamente decorrido e exibe uma média móvel curta. O contador antigo podia mostrar 60 quadros como 60 FPS mesmo se o intervalo tivesse levado dois segundos. Essa correção de medição não muda a velocidade do jogo.
 
-Em Configurações → Núcleo PS2, **Otimizado** carrega `Play-perf.js`/`Play-perf.wasm`. **Anterior** mantém `Play.js`/`Play.wasm` sem o patch nativo e usa cache JS de 4 MiB. Feche e inicie o jogo novamente para aplicar a seleção. A versão anterior permanece disponível para regressões de compatibilidade. Nenhuma dessas opções modifica a ISO.
+Em Configurações → Núcleo PS2, **Otimizado** usa cache nativo e escolhe o binário conforme o perfil gráfico acima. **Anterior** mantém `Play.js`/`Play.wasm` sem o patch nativo e usa cache JS de 4 MiB. Feche e inicie o jogo novamente para aplicar a seleção. A versão anterior permanece disponível para regressões de compatibilidade. Nenhuma dessas opções modifica a ISO.
 
 Se a GPU identificada mencionar SwiftShader/llvmpipe/software, o navegador está renderizando por CPU. Verifique a aceleração gráfica nas configurações de Chrome/Edge e reinicie o navegador. Não é possível prometer 60 FPS: emulação da CPU/VU/GS, gráficos, leitura, jogo e hardware continuam impondo limites.
 

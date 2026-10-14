@@ -27,3 +27,12 @@ REA 6.5.0 foi usado para análise estática do site e do artefato ELF God of War
 ## Limites
 
 O núcleo atual usa WebGL2, não WebGPU. A análise REA não converte automaticamente a ISO em um jogo PC. A compatibilidade e o desempenho ainda dependem do Play!, jogo, navegador e hardware.
+
+## Correção gráfica solicitada — revisão 0.6.0
+
+- [x] Corrigir o caminho de alpha/blending no núcleo WebGL2 usando dupla fonte quando o navegador/GPU suportarem, sem mudar os dados da ISO. Teste RGBA8: alpha 128 preservado; 21.426 chamadas reais de dupla fonte e 27 variantes de shader na Radeon, sem erros.
+- [x] Aumentar a precisão dos shaders e aplicar a melhoria por padrão a todos os jogos novos e existentes, com fallback automático para navegadores sem a extensão. Três shaders highp; seleção global e fallback real sem extensão testados.
+- [x] Manter uma opção de gráficos anteriores para regressões; não esconder cores incorretas com filtros visuais. Gráficos Anteriores e Núcleo Anterior permanecem selecionáveis; nenhum filtro de cor foi aplicado.
+- [x] Validar objetivamente a preservação do alpha no framebuffer e testar God of War em gameplay na Radeon, não apenas no menu/SwiftShader. Primeira fase alcançada: 35 variantes e 53.147 chamadas de dupla fonte; a camada verde persiste e NÃO está resolvida.
+- [ ] Publicar somente correções testadas e declarar os defeitos residuais; não afirmar que todos os jogos foram testados ou que todos os bugs sumiram.
+- [ ] Resolver a camada verde/neblina de God of War: requer correções adicionais do GS; não foi eliminada pela dupla fonte/highp desta revisão. Não executar novos testes extensivos nesta entrega, conforme solicitação do usuário.

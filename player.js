@@ -1,5 +1,6 @@
 import { DiscImageDevice, checkDiscAccess } from './disc-device.js?v=0.5.0';
 import { FrameRateMeter } from './performance-utils.js?v=0.5.0';
+import { selectGraphics } from './graphics-config.js?v=0.6.0';
 
 const canvas = document.querySelector('#outputCanvas');
 const status = document.querySelector('#status');
@@ -17,6 +18,7 @@ let totalFrames = 0;
 let logsDirty = false;
 let gpuName = 'GPU não identificada';
 let gpuInspected = false;
+let graphics = { corrected: false, dualSource: false };
 const lines = [];
 
 function send(type, values = {}) {
@@ -54,12 +56,18 @@ function fail(error) {
   console.error('[Orion Play]', technical);
   send('error', { message, technical });
 }
-function configureGraphics(optimized) {
+function configureGraphics(optimized, settings) {
   if (!optimized) return;
   const getContext = canvas.getContext.bind(canvas);
-  canvas.getContext = (type, attributes) => getContext(type, /^(webgl2?|experimental-webgl)$/.test(type)
-    ? { ...attributes, powerPreference: 'high-performance', antialias: false }
-    : attributes);
+  canvas.getContext = (type, attributes) => {
+    const webgl = /^(webgl2?|experimental-webgl)$/.test(type);
+    const gl = getContext(type, webgl ? { ...attributes, powerPreference: 'high-performance', antialias: false } : attributes);
+    if (gl && webgl && settings.dualSource && !gl.getExtension('WEBGL_blend_func_extended')) {
+      settings.dualSource = false;
+      log('Dupla fonte indisponível no canvas; fallback gráfico selecionado.');
+    }
+    return gl;
+  };
 }
 function inspectGraphics() {
   const gl = canvas.getContext('webgl2');
@@ -70,30 +78,32 @@ function inspectGraphics() {
   const software = /swiftshader|llvmpipe|software rasterizer|microsoft basic render/i.test(gpuName);
   gpuElement.textContent = software
     ? 'Renderização por software detectada: verifique a aceleração gráfica do navegador.'
-    : 'WebGL2 · ' + gpuName;
-  send('gpu', { gpuName, software });
+    : 'WebGL2 · ' + gpuName + ' · ' + (graphics.corrected ? (graphics.dualSource ? 'Alpha dupla fonte + highp' : 'Highp; alpha em fallback') : 'Gráficos anteriores');
+  send('gpu', { gpuName, software, graphicsCorrected: graphics.corrected, dualSource: graphics.dualSource });
 }
 
 async function boot(file, options = {}) {
   if (started) return;
   started = true;
-  const optimized = options.mode !== 'compatibility';
-  const coreName = optimized ? 'Play-perf.js' : 'Play.js';
   try {
     if (!crossOriginIsolated) throw new Error('Isolamento cross-origin inativo. Recarregue antes de selecionar a ISO.');
-    const probe = document.createElement('canvas').getContext('webgl2');
+    const probe = document.createElement('canvas').getContext('webgl2', { powerPreference: 'high-performance' });
     if (!probe) throw new Error('WebGL2 indisponível.');
+    const choice = selectGraphics(options, !!probe.getExtension('WEBGL_blend_func_extended'));
+    const { optimized } = choice;
+    graphics = { corrected: choice.corrected, dualSource: choice.dualSource };
     probe.getExtension('WEBGL_lose_context')?.loseContext();
-    configureGraphics(optimized);
+    configureGraphics(optimized, graphics);
     setStatus('Verificando acesso à ISO…');
     await checkDiscAccess(file);
-    setStatus(optimized ? 'Carregando núcleo com cache nativo…' : 'Carregando núcleo anterior de compatibilidade…');
-    const coreURL = new URL('./' + coreName, location.href);
+    setStatus(choice.corrected ? 'Carregando núcleo gráfico com precisão highp…' : optimized ? 'Carregando núcleo com gráficos anteriores…' : 'Carregando núcleo anterior de compatibilidade…');
+    const coreURL = new URL('./' + choice.script, location.href);
     const { default: Play } = await import(coreURL.href);
     module = await Play({
       canvas,
+      orionGraphics: graphics,
       mainScriptUrlOrBlob: coreURL.href,
-      locateFile: path => new URL(optimized && /(^|\/)Play\.wasm$/.test(path) ? 'Play-perf.wasm' : path, coreURL.href).href,
+      locateFile: path => new URL(/(^|\/)Play\.wasm$/.test(path) ? choice.wasm : path, coreURL.href).href,
       print: log,
       printErr: log,
       onAbort: reason => fail(new Error('Runtime interrompido: ' + reason)),
@@ -105,7 +115,7 @@ async function boot(file, options = {}) {
     module.ccall('initVm', null, [], []);
     module.bootDiscImage(file.name);
     setStatus('Boot solicitado; aguardando quadros do jogo…');
-    send('boot-requested', { name: file.name, size: file.size, optimized });
+    send('boot-requested', { name: file.name, size: file.size, optimized, graphicsCorrected: graphics.corrected, dualSource: graphics.dualSource });
     canvas.focus();
     const bootAt = performance.now();
     meter.reset(bootAt);
@@ -129,7 +139,7 @@ async function boot(file, options = {}) {
         send('stats', { frames, fps: rate.fps, averageFps: rate.averageFps, sampleMs: rate.sampleMs, totalFrames,
           bytesRead: device.bytesRead, diskBytesRead: device.diskBytesRead, readCount: device.readCount,
           cacheHits: device.cacheHits, cacheMisses: device.cacheMisses, cacheBytes: device.cacheBytes,
-          wasmMemoryBytes: module.HEAPU8.length, gpuName, optimized });
+          wasmMemoryBytes: module.HEAPU8.length, gpuName, optimized, graphicsCorrected: graphics.corrected, dualSource: graphics.dualSource });
       } catch (error) { fail(error); }
     }, 1000);
   } catch (error) { fail(error); }

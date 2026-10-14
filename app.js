@@ -9,8 +9,10 @@ let activeGame = null;
 let toastTimer;
 let coreMode = 'optimized';
 try { if (localStorage.getItem('orion-core-mode') === 'compatibility') coreMode = 'compatibility'; } catch {}
+let graphicsProfile = 'auto';
+try { if (localStorage.getItem('orion-graphics-profile') === 'legacy') graphicsProfile = 'legacy'; } catch {}
 
-function selectedCoreOptions() { return { mode: coreMode }; }
+function selectedCoreOptions() { return { mode: coreMode, graphics: graphicsProfile }; }
 
 function toast(message) {
   $('#toast').textContent = message;
@@ -110,7 +112,7 @@ function openEmulator(game) {
   }
   player = document.createElement('iframe');
   player.title = 'Player PS2 local';
-  player.src = './player.html?v=0.5.0';
+  player.src = './player.html?v=0.6.0';
   player.allow = 'autoplay; fullscreen; gamepad';
   $('#playerHost').append(player);
 }
@@ -125,7 +127,8 @@ window.addEventListener('message', event => {
     $('#emulatorMessage').textContent = data.message;
   } else if (data.type === 'stats') {
     const fps = Number.isFinite(data.averageFps) ? data.averageFps.toFixed(1) : String(data.frames);
-    const text = `${fps} FPS · ${data.optimized ? 'núcleo otimizado' : 'núcleo anterior'} · ${data.readCount.toLocaleString('pt-BR')} leituras pela ponte · cache ${formatSize(data.cacheBytes || 0)} · WASM ${formatSize(data.wasmMemoryBytes)}`;
+    const graphicsLabel = data.graphicsCorrected ? data.dualSource ? 'alpha dupla fonte + highp' : 'highp; fallback alpha' : 'gráficos anteriores';
+    const text = `${fps} FPS · ${graphicsLabel} · ${data.readCount.toLocaleString('pt-BR')} leituras pela ponte · cache ${formatSize(data.cacheBytes || 0)} · WASM ${formatSize(data.wasmMemoryBytes)}`;
     if ($('#playerStats').textContent !== text) $('#playerStats').textContent = text;
   }
 });
@@ -190,6 +193,12 @@ $('#coreModeSelect').onchange = event => {
   coreMode = event.target.value === 'compatibility' ? 'compatibility' : 'optimized';
   try { localStorage.setItem('orion-core-mode', coreMode); } catch {}
   toast('Modo salvo. Feche e inicie o jogo novamente para aplicar.');
+};
+$('#graphicsProfileSelect').value = graphicsProfile;
+$('#graphicsProfileSelect').onchange = event => {
+  graphicsProfile = event.target.value === 'legacy' ? 'legacy' : 'auto';
+  try { localStorage.setItem('orion-graphics-profile', graphicsProfile); } catch {}
+  toast('Perfil gráfico global salvo. Reinicie o player para aplicar.');
 };
 document.querySelectorAll('[data-close]').forEach(button => { button.onclick = () => button.closest('dialog').close(); });
 $('#emulatorDialog').addEventListener('close', stopPlayer);
