@@ -45,7 +45,7 @@ jobs:
         run: |
           mkdir -p build
           cd build
-          emcmake cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -DBUILD_PLAY=ON -DBUILD_PSFPLAYER=ON -DUSE_QT=OFF -DCMAKE_C_FLAGS=-sPTHREADS=0 -DCMAKE_CXX_FLAGS=-sPTHREADS=0
+          emcmake cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -DBUILD_PLAY=ON -DBUILD_PSFPLAYER=ON -DUSE_QT=OFF -DZSTD_MULTITHREAD_SUPPORT=OFF -DCMAKE_C_FLAGS=-sPTHREADS=0 -DCMAKE_CXX_FLAGS=-sPTHREADS=0
 
       - name: Compile Play! WebAssembly
         working-directory: emulator/Play
